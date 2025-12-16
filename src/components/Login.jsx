@@ -1,7 +1,7 @@
 import { useState } from "react";
-import API_URL from "../config/api";
 import "./Auth.css";
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://beatbox-music-streaming-app.onrender.com';
 
 export default function Login({ onLogin, onSwitchToRegister }) {
   const [formData, setFormData] = useState({
