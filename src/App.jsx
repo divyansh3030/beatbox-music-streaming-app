@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import "./style.css";
+import API_URL from "./config/api";
 import Navbar from "./components/Navbar";
 import SongList from "./components/SongList";
 import MusicPlayer from "./components/MusicPlayer";
@@ -7,7 +8,7 @@ import SongBanner from "./components/SongBanner";
 import Login from "./components/Login";
 import Register from "./components/Register";
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://beatbox-music-streaming-app.onrender.com';
+
 
 function App() {
   const allSongs = [

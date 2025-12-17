@@ -9,13 +9,11 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: [
-    "http://localhost:5173",          // local frontend
-    "https://YOUR_FRONTEND_URL.vercel.app" // deployed frontend
-  ],
+  origin: true,
   credentials: true
 }));
 app.use(express.json());
+
 
 
 // MongoDB Connection
