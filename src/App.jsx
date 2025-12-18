@@ -7,6 +7,7 @@ import MusicPlayer from "./components/MusicPlayer";
 import SongBanner from "./components/SongBanner";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import About from "./components/About";
 
 
 
@@ -99,9 +100,13 @@ function App() {
     );
   }
 
-  const handleAbout = () => {
-    alert(`Hi, I am Divyansh Kakkar – owner of this website.\nContact: 8630079657\nEmail: divyanshkakkar30@gmail.com\n\nLogged in as: ${user?.username}`);
-  };
+  // Add state for About modal at the top with other useState
+const [showAbout, setShowAbout] = useState(false);
+
+// NEW handleAbout function
+const handleAbout = () => {
+  setShowAbout(true);
+};
 
   const handleLogout = () => {
     localStorage.removeItem('beatbox-token');
@@ -277,6 +282,8 @@ const showToast = (message) => {
         onNext={() => setCurrentSong((currentSong + 1) % allSongs.length)}
         onPrev={() => setCurrentSong(currentSong === 0 ? allSongs.length - 1 : currentSong - 1)}
       />
+       {/* Add About Modal - ADD THIS */}
+      {showAbout && <About onClose={() => setShowAbout(false)} />}
     </>
   );
 }
