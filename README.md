@@ -213,9 +213,8 @@ This project is open source and available under the [MIT License](LICENSE).
 
 **Divyansh Kakkar**
 - 📧 Email: divyanshkakkar30@gmail.com
-- 📱 Phone: 8630079657
-- 💼 LinkedIn: [Your LinkedIn Profile]
-- 🐙 GitHub: [Your GitHub Profile]
+- 💼 LinkedIn: linkedin.com/in/divyansh-kakkar-20567626b
+- 🐙 GitHub: github.com/divyansh3030
 
 ## 🙏 Acknowledgments
 
