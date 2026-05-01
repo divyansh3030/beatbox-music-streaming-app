@@ -4,7 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 require('dotenv').config();
 
 const app = express();
@@ -20,35 +20,20 @@ app.use(express.json());
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 60;
-
-const createMailTransporter = () => {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-
-  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
-    return null;
-  }
-
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: Number(SMTP_PORT) === 465,
-    auth: {
-      user: SMTP_USER,
-      pass: SMTP_PASS
-    }
-  });
-};
-
-const mailTransporter = createMailTransporter();
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 const sendResetEmail = async (to, resetLink) => {
-  if (!mailTransporter) {
+  const fromAddress = process.env.RESEND_FROM || 'BeatBox <onboarding@resend.dev>';
+
+  if (!resend) {
     console.log(`Reset link for ${to}: ${resetLink}`);
     return false;
   }
 
-  await mailTransporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+  await resend.emails.send({
+    from: fromAddress,
     to,
     subject: 'BeatBox password reset',
     text: `Reset your BeatBox password using this link: ${resetLink}. This link expires in 1 hour.`,
@@ -237,7 +222,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
     const resetLink = `${FRONTEND_URL}?resetToken=${resetToken}`;
 
-    if (!mailTransporter && process.env.NODE_ENV === 'production') {
+    if (!resend && process.env.NODE_ENV === 'production') {
       return res.status(500).json({
         message: 'Password reset email service is not configured yet. Please contact support.'
       });
