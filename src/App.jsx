@@ -7,6 +7,8 @@ import MusicPlayer from "./components/MusicPlayer";
 import SongBanner from "./components/SongBanner";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
+import ResetPassword from "./components/ResetPassword";
 import About from "./components/About";
 
 
@@ -34,9 +36,19 @@ function App() {
   // Auth States
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [showRegister, setShowRegister] = useState(false);
+  const [authView, setAuthView] = useState("login");
+  const [resetToken, setResetToken] = useState("");
 
   // Check if user is already logged in
+  useEffect(() => {
+    const tokenFromUrl = new URLSearchParams(window.location.search).get("resetToken");
+
+    if (tokenFromUrl) {
+      setResetToken(tokenFromUrl);
+      setAuthView("reset");
+    }
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('beatbox-token');
     const savedUser = localStorage.getItem('beatbox-user');
@@ -119,11 +131,19 @@ const handleAbout = () => {
   const handleLogin = (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
+    setAuthView("login");
   };
 
   const handleRegister = (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
+    setAuthView("login");
+  };
+
+  const handleBackToLogin = () => {
+    setAuthView("login");
+    setResetToken("");
+    window.history.replaceState({}, "", window.location.pathname);
   };
 
   const handlePlay = (filteredIndex) => {
@@ -167,15 +187,33 @@ const showToast = (message) => {
 
   // Show Login/Register if not authenticated
   if (!isAuthenticated) {
-    return showRegister ? (
-      <Register 
-        onRegister={handleRegister}
-        onSwitchToLogin={() => setShowRegister(false)}
-      />
-    ) : (
-      <Login 
+    if (authView === "register") {
+      return (
+        <Register
+          onRegister={handleRegister}
+          onSwitchToLogin={() => setAuthView("login")}
+        />
+      );
+    }
+
+    if (authView === "forgot") {
+      return <ForgotPassword onBackToLogin={handleBackToLogin} />;
+    }
+
+    if (authView === "reset" && resetToken) {
+      return (
+        <ResetPassword
+          token={resetToken}
+          onBackToLogin={handleBackToLogin}
+        />
+      );
+    }
+
+    return (
+      <Login
         onLogin={handleLogin}
-        onSwitchToRegister={() => setShowRegister(true)}
+        onSwitchToRegister={() => setAuthView("register")}
+        onForgotPassword={() => setAuthView("forgot")}
       />
     );
   }

@@ -3,7 +3,7 @@ import "./Auth.css";
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://beatbox-music-streaming-app.onrender.com';
 
-export default function Login({ onLogin, onSwitchToRegister }) {
+export default function Login({ onLogin, onSwitchToRegister, onForgotPassword }) {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -47,20 +47,6 @@ export default function Login({ onLogin, onSwitchToRegister }) {
       setError('Network error. Please check if backend is running on port 5000.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleForgotPassword = () => {
-    const email = prompt("Enter your email address:");
-    if (email) {
-      fetch(`${API_URL}/api/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      })
-        .then(res => res.json())
-        .then(data => alert(data.message))
-        .catch(() => alert('Error sending reset link'));
     }
   };
 
@@ -122,7 +108,7 @@ export default function Login({ onLogin, onSwitchToRegister }) {
             <button 
               type="button" 
               className="forgot-password"
-              onClick={handleForgotPassword}
+              onClick={onForgotPassword}
             >
               Forgot Password?
             </button>

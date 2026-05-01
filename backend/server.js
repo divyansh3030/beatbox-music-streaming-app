@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -16,6 +18,58 @@ app.use(express.json());
 
 
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const RESET_TOKEN_TTL_MS = 1000 * 60 * 60;
+
+const createMailTransporter = () => {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+
+  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: Number(SMTP_PORT),
+    secure: Number(SMTP_PORT) === 465,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS
+    }
+  });
+};
+
+const mailTransporter = createMailTransporter();
+
+const sendResetEmail = async (to, resetLink) => {
+  if (!mailTransporter) {
+    console.log(`Reset link for ${to}: ${resetLink}`);
+    return false;
+  }
+
+  await mailTransporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to,
+    subject: 'BeatBox password reset',
+    text: `Reset your BeatBox password using this link: ${resetLink}. This link expires in 1 hour.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111;">
+        <h2>Reset your BeatBox password</h2>
+        <p>Click the button below to choose a new password. This link expires in 1 hour.</p>
+        <p>
+          <a href="${resetLink}" style="display: inline-block; padding: 12px 20px; background: #1DB954; color: #fff; text-decoration: none; border-radius: 8px;">
+            Reset Password
+          </a>
+        </p>
+        <p>If the button does not work, copy and paste this URL into your browser:</p>
+        <p>${resetLink}</p>
+      </div>
+    `
+  });
+
+  return true;
+};
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected Successfully!'))
@@ -26,6 +80,8 @@ const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -156,15 +212,78 @@ app.get('/api/auth/verify', authenticateToken, async (req, res) => {
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
     const user = await User.findOne({ email });
     
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.json({
+        message: 'If an account exists for that email, a reset link has been sent.'
+      });
     }
 
-    // In production, send actual email here
-    res.json({ message: 'Password reset link sent to your email (demo mode)' });
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    user.resetPasswordToken = hashedResetToken;
+    user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+    await user.save();
+
+    const resetLink = `${FRONTEND_URL}?resetToken=${resetToken}`;
+    const deliveredByEmail = await sendResetEmail(user.email, resetLink);
+    const message = deliveredByEmail
+      ? 'Password reset link sent to your email.'
+      : 'Password reset link generated. Check backend server logs in development mode.';
+
+    res.json({ message });
   } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reset Password
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ message: 'Token and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const hashedResetToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedResetToken,
+      resetPasswordExpires: { $gt: new Date() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Reset link is invalid or has expired' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successful. You can now sign in.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

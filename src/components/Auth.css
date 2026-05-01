@@ -133,6 +133,18 @@
   animation: shake 0.5s;
 }
 
+.success-message {
+  background: rgba(29, 185, 84, 0.12);
+  border: 1px solid rgba(29, 185, 84, 0.5);
+  color: #7df0a8;
+  padding: 12px 15px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-10px); }
@@ -289,6 +301,12 @@
   .auth-box {
     padding: 35px 25px;
     margin: 20px;
+  }
+
+  .form-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .auth-header h1 {
