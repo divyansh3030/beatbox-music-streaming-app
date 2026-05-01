@@ -236,6 +236,13 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     await user.save();
 
     const resetLink = `${FRONTEND_URL}?resetToken=${resetToken}`;
+
+    if (!mailTransporter && process.env.NODE_ENV === 'production') {
+      return res.status(500).json({
+        message: 'Password reset email service is not configured yet. Please contact support.'
+      });
+    }
+
     const deliveredByEmail = await sendResetEmail(user.email, resetLink);
     const message = deliveredByEmail
       ? 'Password reset link sent to your email.'
